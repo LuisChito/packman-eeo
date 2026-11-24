@@ -26,6 +26,13 @@ CASA = frozenset({(9, 8), (9, 9), (9, 10)})
 PUERTA_CASA = (8, 9)
 ZONA_CASA = CASA | {PUERTA_CASA}        # Pac-Man no puede pisarla
 
+# Portales: al intentar entrar a la celda túnel (valor 2), Pac-Man aparece
+# en la celda de pasillo del otro lado. Nunca se queda sobre el túnel.
+PORTALES = {
+    (7, 0): (7, 17),    # entra por la izquierda -> sale por la derecha
+    (7, 18): (7, 1),    # entra por la derecha  -> sale por la izquierda
+}
+
 # Ruta fija de salida: siguiente(Ff, Fc)
 RUTA_SALIDA = {
     (9, 8): (9, 9),

@@ -103,8 +103,12 @@ class MotorReglas:
 
         # 1) Pac-Man se mueve: primero la dirección que pidió el jugador;
         #    si choca, sigue en su dirección actual (Dir); si no, se queda.
+        #    Grupo por dirección: [mover_<dir> | cruzar_portal_<dir>].
         for direccion in (direccion_deseada, self.estado.pacman.Dir):
-            if direccion and self._disparar(op.MOVIMIENTOS[direccion], "1 · Pac-Man"):
+            if not direccion:
+                continue
+            grupo = (op.MOVIMIENTOS[direccion], *filter(None, [op.PORTALES_POR_DIRECCION.get(direccion)]))
+            if self._disparar_grupo(grupo, "1 · Pac-Man"):
                 break
 
         # 2) a 5)

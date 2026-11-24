@@ -142,8 +142,32 @@ class Operadores(unittest.TestCase):
         self.assertTrue(op.PERDER_JUEGO.aplicar(e))
         self.assertEqual(e.EJ, PERDIDO)
 
-    def test_son_24_operadores(self):
-        self.assertEqual(sorted({r.numero for r in op.TODAS}), list(range(1, 25)))
+    def test_son_25_operadores(self):
+        self.assertEqual(sorted({r.numero for r in op.TODAS}), list(range(1, 26)))
+
+    def test_portal_izquierdo_y_derecho(self):
+        e = jugando()
+        e.pacman.Pf, e.pacman.Pc = 7, 1
+        self.assertFalse(op.MOVER_IZQUIERDA.es_aplicable(e))      # el túnel sigue siendo pared
+        self.assertTrue(op.CRUZAR_PORTAL_IZQUIERDA.aplicar(e))
+        self.assertEqual((e.pacman.pos, e.pacman.Dir), ((7, 17), "←"))
+        e.pacman.Dir = "→"
+        self.assertTrue(op.CRUZAR_PORTAL_DERECHA.aplicar(e))
+        self.assertEqual((e.pacman.pos, e.pacman.Dir), ((7, 1), "→"))
+
+    def test_portal_solo_junto_al_tunel(self):
+        e = jugando()
+        self.assertFalse(op.CRUZAR_PORTAL_IZQUIERDA.es_aplicable(e))   # en (13, 9)
+
+    def test_motor_cruza_portal_y_come_orbe(self):
+        e = Estado.inicial()
+        m = MotorReglas(e)
+        m.aplicar_evidente("iniciar_juego")
+        e.pacman.Pf, e.pacman.Pc = 7, 1
+        nombres = [r.nombre for r in m.ejecutar_ronda("←")]
+        self.assertEqual(nombres[:2], ["cruzar_portal_izquierda", "comer_orbe"])
+        self.assertEqual(e.pacman.pos, (7, 17))
+        self.assertEqual(e.M.valor((7, 17)), 0)
 
 
 class Motor(unittest.TestCase):

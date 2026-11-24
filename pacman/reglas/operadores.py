@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from ..config import (
     ABAJO, ARRIBA, ASUSTADO, BLOQUEADAS, CASA, COMIDO, DELTAS, DERECHA, GANADO,
-    INICIO, IZQUIERDA, JUGANDO, NORMAL, ORBE, ORBES_INICIALES, PASILLO, PAUSA,
+    INICIO, IZQUIERDA, JUGANDO, PORTALES, NORMAL, ORBE, ORBES_INICIALES, PASILLO, PAUSA,
     PERDIDO, PTS_FANTASMA, PTS_ORBE, PTS_SUPER, RADIO_PELIGRO, ROSA, RUTA_SALIDA,
     SPAWN_PAC, SUPER_INICIALES, SUPER_PASTILLA, TIEMPO_PODER, UMBRAL_EMBOSCADA,
     VERDE, VIDAS_INICIALES, ZONA_CASA,
@@ -98,6 +98,26 @@ def _movimiento(direccion: str):
         e.pacman.Dir = direccion
 
     return condicion, accion
+
+
+# ------------------------------------------------- 25 cruzar portal
+def _portal(direccion: str):
+    df, dc = DELTAS[direccion]
+
+    def condicion(e: Estado) -> bool:
+        destino = (e.pacman.Pf + df, e.pacman.Pc + dc)
+        return _jugando(e) and destino in PORTALES     # la celda de enfrente es túnel
+
+    def accion(e: Estado) -> None:
+        destino = (e.pacman.Pf + df, e.pacman.Pc + dc)
+        e.pacman.Pf, e.pacman.Pc = PORTALES[destino]
+        e.pacman.Dir = direccion
+
+    return condicion, accion
+
+
+_c_portal_izq, _a_portal_izq = _portal(IZQUIERDA)
+_c_portal_der, _a_portal_der = _portal(DERECHA)
 
 
 _c_arriba, _a_arriba = _movimiento(ARRIBA)
@@ -344,6 +364,10 @@ PERDER_JUEGO = Regla(19, "perder_juego", OCULTO, _c_perder_juego, _a_perder_jueg
     "Si EJ = jugando y V = 0 entonces EJ = perdido (el resto se conserva)")
 ACTUALIZAR_RECORD = Regla(20, "actualizar_record", OCULTO, _c_actualizar_record, _a_actualizar_record,
     "Si (EJ = ganado o EJ = perdido) y Pts > Rec entonces Rec = Pts")
+CRUZAR_PORTAL_IZQUIERDA = Regla(25, "cruzar_portal_izquierda", EVIDENTE, _c_portal_izq, _a_portal_izq,
+    "Si EJ = jugando y (Pf, Pc−1) = (7, 0) entonces (Pf, Pc) = (7, 17), Dir = ←")
+CRUZAR_PORTAL_DERECHA = Regla(25, "cruzar_portal_derecha", EVIDENTE, _c_portal_der, _a_portal_der,
+    "Si EJ = jugando y (Pf, Pc+1) = (7, 18) entonces (Pf, Pc) = (7, 1), Dir = →")
 REINICIAR = Regla(21, "reiniciar", EVIDENTE, _terminada, _a_reiniciar,
     "Si EJ = ganado o EJ = perdido entonces EJ = inicio")
 
@@ -367,6 +391,7 @@ GLOBALES: tuple[Regla, ...] = (
     INICIAR_JUEGO, PAUSAR, REANUDAR, MOVER_ARRIBA, MOVER_ABAJO, MOVER_IZQUIERDA,
     MOVER_DERECHA, COMER_ORBE, COMER_SUPER, REDUCIR_PODER, TERMINAR_PODER,
     GANAR, PERDER_JUEGO, ACTUALIZAR_RECORD, REINICIAR,
+    CRUZAR_PORTAL_IZQUIERDA, CRUZAR_PORTAL_DERECHA,
 )
 
 TODAS: tuple[Regla, ...] = tuple(sorted(
@@ -381,4 +406,10 @@ MOVIMIENTOS: dict[str, Regla] = {
     ABAJO: MOVER_ABAJO,
     IZQUIERDA: MOVER_IZQUIERDA,
     DERECHA: MOVER_DERECHA,
+}
+
+# Si mover_<dir> no aplica porque enfrente hay un túnel, se prueba el portal.
+PORTALES_POR_DIRECCION: dict[str, Regla] = {
+    IZQUIERDA: CRUZAR_PORTAL_IZQUIERDA,
+    DERECHA: CRUZAR_PORTAL_DERECHA,
 }

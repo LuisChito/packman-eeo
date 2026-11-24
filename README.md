@@ -12,6 +12,8 @@ Sobre esa base se agregaron **dos fantasmas** y **3 reglas nuevas** (ver secció
 - 🟢 **Fantasma verde** (spawn valor `4`, con IA): `22. perseguir_inteligente` y `23. huir_inteligente`.
 - 🩷 **Fantasma rosa** (spawn valor `3`, sin IA): una sola regla tonta, `24. deambular` (camina al azar).
 
+> 📝 Todo lo que hay que actualizar en los PDFs está en [`CAMBIOS_PARA_PDF.md`](CAMBIOS_PARA_PDF.md).
+
 El juego no "inventa" lógica: cada movimiento, colisión, cambio de poder o fin de partida ocurre
 porque una regla de la Tabla 2 se disparó. El panel lateral muestra en vivo las variables del estado
 y la traza de las reglas que aplicó el motor.
@@ -35,7 +37,7 @@ python -m unittest -v               # corre las pruebas (no necesitan pygame)
 | `Enter` / `Espacio` en la pantalla de inicio | `1. iniciar_juego` |
 | `P` / `Esc` mientras se juega | `2. pausar` |
 | `P` / `Esc` / `Enter` en pausa | `3. reanudar` |
-| `↑ ↓ ← →` o `W S A D` | `4–7. mover_arriba / abajo / izquierda / derecha` |
+| `↑ ↓ ← →` o `W S A D` | `4–7. mover_arriba / abajo / izquierda / derecha` (y `25. cruzar_portal` al llegar al túnel) |
 | `Enter` al ganar o perder | `21. reiniciar` |
 
 El resto de los operadores son **ocultos**: el motor los dispara solo, en cuanto se cumplen sus
@@ -187,6 +189,7 @@ Cada operador es un objeto `Regla` (`reglas/base.py`) con:
 | **22** | **`perseguir_inteligente`** | oculto | `E = 0`, fuera de casa y `BFS(fantasma, Pac-Man) > 4` | vecina con menor BFS a **predicción(Pf, Pc, Dir, 4)** |
 | **23** | **`huir_inteligente`** | oculto | `E = 1`, fuera de casa y `BFS(fantasma, Pac-Man) ≤ 8` | entre las vecinas que se alejan, la de mayor **territorio** |
 | **24** | **`deambular`** | oculto | `E ≠ 2` y fuera de casa | vecina **al azar** |
+| **25** | **`cruzar_portal_izquierda` / `_derecha`** | evidente | la celda de enfrente es el túnel (7, 0) o (7, 18) | Pac-Man aparece en (7, 17) o (7, 1) |
 
 **Reglas por fantasma.** Las reglas que hablan de "el fantasma" (10–14, 17 y 22–24) son
 *parametrizadas*: se crea una copia para cada fantasma (`salir_casa·verde`, `salir_casa·rosa`…)
@@ -207,7 +210,7 @@ por eso en pausa el mundo queda congelado sin código especial.
 
 Implementa el **orden de aplicación en cada ronda** del documento:
 
-1. **Pac-Man se mueve** — se intenta la dirección que pidió el jugador; si choca, sigue en su `Dir` actual; si también choca, se queda quieto.
+1. **Pac-Man se mueve** — por cada dirección el grupo es `[mover_<dir> | cruzar_portal_<dir>]`: se intenta la dirección que pidió el jugador; si choca, sigue en su `Dir` actual; si también choca, se queda quieto.
 2. **Colisión** — `[comer_orbe | comer_super]`, luego `[comer_fantasma | perder_vida]`.
 3. **Fantasmas se mueven** — verde: `[salir_casa | perseguir_inteligente | perseguir | huir_inteligente | huir]` y se revisa su colisión; luego rosa: `[salir_casa | deambular]` y se revisa su colisión.
 4. **Poder y regeneración** — `[reducir_poder | terminar_poder]`, luego `[regenerar_fantasma]` de cada fantasma.
@@ -296,6 +299,7 @@ Puntos donde el documento deja libertad y cómo se resolvieron:
 |---|---|---|
 | El fantasma se mueve sobre Pac-Man en la fase 3 | Se re-evalúan `comer_fantasma`/`perder_vida` después de mover al fantasma | Las reglas ocultas se aplican "en cuanto se cumplen sus condiciones"; si no, el fantasma podría atravesar a Pac-Man |
 | El jugador no presiona tecla | Pac-Man sigue en su `Dir` hasta chocar | `Dir` es parte del estado; da la sensación clásica de Pac-Man |
+| Portales (túnel, valor `2`) | El túnel sigue siendo pared: nadie se queda parado en él. Cuando Pac-Man intenta entrar, la regla 25 lo pasa a la celda de pasillo del otro lado. Los fantasmas **no** usan portales | Respeta la restricción `M ∉ {1, 2}` y agrega el teletransporte |
 | Dos fantasmas en la misma celda | Se permite (no chocan entre sí); se dibujan un poco desplazados | El análisis no define colisión entre fantasmas |
 | Duración de una ronda | 170 ms (`interfaz/tema.py → MS_POR_RONDA`) | Es un parámetro visual: las reglas cuentan rondas, no milisegundos (`T = 8` rondas) |
 | Récord | Se guarda en `record.json` y se carga al abrir el juego | "El récord guarda el mayor puntaje alcanzado"; sin archivo, `Rec = 0` como en el estado inicial |
@@ -318,10 +322,12 @@ Puntos donde el documento deja libertad y cómo se resolvieron:
 - Reglas inteligentes: predicción, emboscada vs. perseguir simple, huida por territorio vs. huir
   simple, que `huir_inteligente` nunca se acerque si puede alejarse, umbrales 4 y 8, y que
   `deambular` elija vecinas válidas al azar (con semilla fija).
+- Portales: cruzar de izquierda a derecha y viceversa, que el túnel siga siendo pared, y que el
+  motor cruce el portal y coma el orbe del otro lado en la misma ronda.
 
 ```bash
 python -m unittest -v
-# Ran 30 tests ... OK
+# Ran 33 tests ... OK
 ```
 
 ---
