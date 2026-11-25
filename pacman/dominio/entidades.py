@@ -29,7 +29,7 @@ class PacMan:
     Pc: int = SPAWN_PAC[1]
     Dir: str = IZQUIERDA
     P: int = 0          # 0 = normal, 1 = con poder
-    T: int = 0          # 0..8 rondas restantes de poder
+    T: int = 0          # 0..31 rondas restantes de poder (≈ 5 s)
     V: int = VIDAS_INICIALES
 
     @property

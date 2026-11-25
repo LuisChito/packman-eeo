@@ -140,7 +140,8 @@ class Renderizador:
         x0, y0 = cx - w / 2, cy - h / 2
         if E != COMIDO:
             if E == ASUSTADO:
-                parpadeo = estado.pacman.T <= 3 and (ms // 180) % 2 == 0
+                # parpadea en el último segundo y medio de poder
+                parpadeo = estado.pacman.T * t.MS_POR_RONDA <= 1500 and (ms // 180) % 2 == 0
                 color = t.FANTASMA_PARPADEO if parpadeo else t.FANTASMA_ASUSTADO
             else:
                 color = t.FANTASMA_VERDE if fantasma.ia else t.FANTASMA_ROSA

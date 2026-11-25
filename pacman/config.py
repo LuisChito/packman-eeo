@@ -55,7 +55,15 @@ RADIO_PELIGRO = 8          # si BFS(fantasma, Pac-Man) <= 8 -> huir_inteligente
 
 # --- Valores iniciales / límites ------------------------------------------
 VIDAS_INICIALES = 3
-TIEMPO_PODER = 8           # T = 8 al comer súper pastilla
+# --- Tiempo ---------------------------------------------------------------
+# Las reglas cuentan RONDAS (un paso de cada personaje). Una ronda dura:
+MS_POR_RONDA = 170
+
+# La súper pastilla dura 5 segundos. En la misma ronda en que se come,
+# la fase 4 ya aplica reducir_poder una vez; por eso se suma 1:
+#   rondas con poder = TIEMPO_PODER − 1 = ceil(5000 / 170) = 30  ->  30 × 170 ms = 5.1 s
+DURACION_PODER_MS = 5000
+TIEMPO_PODER = -(-DURACION_PODER_MS // MS_POR_RONDA) + 1      # T = 31 al comer súper pastilla
 ORBES_INICIALES = 167
 SUPER_INICIALES = 7
 

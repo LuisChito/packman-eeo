@@ -73,7 +73,7 @@ class Operadores(unittest.TestCase):
         e.pacman.Pf, e.pacman.Pc = 1, 1
         self.assertTrue(op.COMER_SUPER.aplicar(e))
         self.assertEqual((e.S, e.tablero.Pts, e.pacman.P, e.pacman.T, e.fantasma.E),
-                         (6, 50, 1, 8, ASUSTADO))
+                         (6, 50, 1, 31, ASUSTADO))
 
     def test_comer_super_no_revive_fantasma_comido(self):
         e = jugando()
@@ -202,6 +202,22 @@ class Motor(unittest.TestCase):
         self.assertEqual(e.EJ, PERDIDO)
         self.assertEqual(e.pacman.V, 0)
         self.assertEqual(e.tablero.Rec, e.tablero.Pts)
+
+    def test_superpastilla_dura_5_segundos(self):
+        from pacman.config import MS_POR_RONDA
+        e = Estado.inicial()
+        m = MotorReglas(e)
+        m.aplicar_evidente("iniciar_juego")
+        e.pacman.Pf, e.pacman.Pc, e.pacman.Dir = 1, 2, "←"
+        m.ejecutar_ronda("←")                     # come la súper pastilla en (1, 1)
+        self.assertEqual(e.pacman.P, 1)
+        rondas = 0
+        while e.pacman.P == 1:
+            e.pacman.Dir = "↑"                    # quieto contra la pared
+            m.ejecutar_ronda("↑")
+            rondas += 1
+        self.assertGreaterEqual(rondas * MS_POR_RONDA, 5000)
+        self.assertLess(rondas * MS_POR_RONDA, 5000 + MS_POR_RONDA)
 
     def test_evidente_rechaza_ocultos(self):
         m = MotorReglas(Estado.inicial())

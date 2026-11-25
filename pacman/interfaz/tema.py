@@ -3,7 +3,7 @@
 CELDA = 32                    # píxeles por celda
 ANCHO_PANEL = 360
 ALTO_BARRA = 34
-MS_POR_RONDA = 170            # duración de una ronda (un paso de cada personaje)
+from ..config import MS_POR_RONDA  # noqa: E402,F401  (duración de una ronda; vive en config)
 FPS = 60
 
 # Paleta

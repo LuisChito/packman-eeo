@@ -353,7 +353,7 @@ COMER_ORBE = Regla(8, "comer_orbe", OCULTO, _c_comer_orbe, _a_comer_orbe,
     "Si EJ = jugando y M[Pf][Pc] = 6 entonces M[Pf][Pc] = 0, O = O−1, Pts = Pts+20")
 COMER_SUPER = Regla(9, "comer_super", OCULTO, _c_comer_super, _a_comer_super,
     "Si EJ = jugando y M[Pf][Pc] = 7 entonces M[Pf][Pc] = 0, S = S−1, Pts = Pts+50, "
-    "P = 1, T = 8; para cada fantasma: si E ≠ 2 entonces E = 1")
+    "P = 1, T = 31 (≈ 5 s); para cada fantasma: si E ≠ 2 entonces E = 1")
 REDUCIR_PODER = Regla(15, "reducir_poder", OCULTO, _c_reducir_poder, _a_reducir_poder,
     "Si EJ = jugando y P = 1 y T > 1 entonces T = T−1")
 TERMINAR_PODER = Regla(16, "terminar_poder", OCULTO, _c_terminar_poder, _a_terminar_poder,

@@ -76,6 +76,12 @@ Lo demás queda igual (`EJ = inicio`, mapa inicial, `(Pf, Pc) = (13, 9)`, `Dir =
 
 ## 5. Tabla 1 · Entidades y variables
 
+Cambiar el rango de **T** (tiempo restante del poder):
+
+| Hoy dice | Debe decir |
+|---|---|
+| T: 0, 1, 2, …, 8 | T: 0, 1, 2, …, 31 (rondas; la súper pastilla dura 5 segundos) |
+
 Reemplazar la fila **Fantasma** por dos entidades:
 
 | Entidad | Atributo | Variable | Estado (variable) |
@@ -112,7 +118,7 @@ variables"*.
 | # | Operador | Qué cambia |
 |---|---|---|
 | 1 | iniciar_juego | `(Ffv, Fcv) = (9, 8), Ev = 0, (Ffr, Fcr) = (9, 10), Er = 0` |
-| 9 | comer_super | "si E ≠ 2 entonces E = 1" ahora es **para cada fantasma**: `si Ev ≠ 2 entonces Ev = 1; si Er ≠ 2 entonces Er = 1` |
+| 9 | comer_super | **`T = 8` → `T = 31`** (5 segundos de poder, ver nota abajo). Y "si E ≠ 2 entonces E = 1" ahora es **para cada fantasma**: `si Ev ≠ 2 entonces Ev = 1; si Er ≠ 2 entonces Er = 1` |
 | 10 | salir_casa | Se aplica a cada fantasma. La ruta `siguiente()` ya incluía (9, 10) → (9, 9), que ahora sí usa el rosa |
 | 11 | perseguir | **Solo el verde**. Ahora es la regla *general*: se usa cuando `perseguir_inteligente` no aplica (Pac-Man a 4 pasos o menos) |
 | 12 | huir | **Solo el verde**. Ahora es la regla *general*: se usa cuando `huir_inteligente` no aplica (Pac-Man a más de 8 pasos) |
@@ -122,6 +128,11 @@ variables"*.
 | 17 | regenerar_fantasma | Se aplica a cada fantasma |
 
 Las reglas 2–8, 15 y 18–21 **no cambian**.
+
+**Nota sobre T = 31 (5 segundos):** cada ronda dura 170 ms. En la misma ronda en que Pac-Man come la
+súper pastilla, la fase 4 ya aplica `reducir_poder` una vez (31 → 30), y `terminar_poder` se dispara
+cuando T = 1. Así el poder dura 30 rondas × 170 ms = 5.1 s. Fórmula: `T = 1 + ⌈5000 / 170⌉ = 31`.
+Con `T = 8` del PDF original el poder duraba solo 7 × 170 ms ≈ 1.2 s.
 
 ---
 
@@ -249,5 +260,5 @@ No contradicen el PDF, pero tampoco están escritas en él:
 | El jugador no presiona tecla | Pac-Man sigue en su `Dir` hasta chocar |
 | Dos fantasmas en la misma celda | Se permite; no chocan entre ellos |
 | Empates en BFS | Se desempata por el orden fijo ↑ ↓ ← → (perseguir y huir simples) |
-| Duración de una ronda | 170 ms. `T = 8` son 8 rondas, no 8 segundos |
+| Duración de una ronda | 170 ms. `T` cuenta rondas, no segundos |
 | Récord | Se guarda en `record.json` y se conserva entre ejecuciones |

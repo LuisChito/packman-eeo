@@ -71,7 +71,7 @@ packmanyucateco/
 ├── requirements.txt
 ├── README.md
 ├── pacman/
-│   ├── config.py               # constantes del análisis (valores 0–8, casa, puntos, T=8...)
+│   ├── config.py               # constantes del análisis (valores 0–8, casa, puntos, ronda de 170 ms, poder de 5 s...)
 │   ├── dominio/                # ENTIDADES: solo datos, cero lógica
 │   │   ├── mapa.py             # Mapa 19×19 transcrito del PDF + consultas de transitabilidad
 │   │   └── entidades.py        # Juego, PacMan, Fantasma, TableroPuntajes y Estado (la fórmula)
@@ -173,7 +173,7 @@ Cada operador es un objeto `Regla` (`reglas/base.py`) con:
 | 3 | `reanudar` | evidente | `EJ = pausa` | `EJ = jugando` |
 | 4–7 | `mover_*` | evidente | destino `∉ {1,2}` y `∉ zona_casa` | `Pf/Pc ± 1`, `Dir` |
 | 8 | `comer_orbe` | oculto | `M[Pf][Pc] = 6` | celda 0, `O−1`, `Pts+20` |
-| 9 | `comer_super` | oculto | `M[Pf][Pc] = 7` | celda 0, `S−1`, `Pts+50`, `P=1`, `T=8`, si `E≠2` → `E=1` |
+| 9 | `comer_super` | oculto | `M[Pf][Pc] = 7` | celda 0, `S−1`, `Pts+50`, `P=1`, `T=31` (≈ 5 s), si `E≠2` → `E=1` |
 | 10 | `salir_casa` | oculto | fantasma ∈ casa y `E ≠ 2` | `siguiente(Ff, Fc)` |
 | 11 | `perseguir` | oculto | `E = 0` y fuera de casa | vecina con **menor** BFS a Pac-Man |
 | 12 | `huir` | oculto | `E = 1` y fuera de casa | vecina con **mayor** BFS a Pac-Man |
@@ -301,7 +301,8 @@ Puntos donde el documento deja libertad y cómo se resolvieron:
 | El jugador no presiona tecla | Pac-Man sigue en su `Dir` hasta chocar | `Dir` es parte del estado; da la sensación clásica de Pac-Man |
 | Portales (túnel, valor `2`) | El túnel sigue siendo pared: nadie se queda parado en él. Cuando Pac-Man intenta entrar, la regla 25 lo pasa a la celda de pasillo del otro lado. Los fantasmas **no** usan portales | Respeta la restricción `M ∉ {1, 2}` y agrega el teletransporte |
 | Dos fantasmas en la misma celda | Se permite (no chocan entre sí); se dibujan un poco desplazados | El análisis no define colisión entre fantasmas |
-| Duración de una ronda | 170 ms (`interfaz/tema.py → MS_POR_RONDA`) | Es un parámetro visual: las reglas cuentan rondas, no milisegundos (`T = 8` rondas) |
+| Duración de una ronda | 170 ms (`config.py → MS_POR_RONDA`) | Las reglas cuentan rondas, no milisegundos |
+| Duración del poder | 5 s → `T = 31` (`config.py → DURACION_PODER_MS`) | El PDF decía `T = 8` (≈ 1.4 s); era muy poco para alcanzar a un fantasma. `T` se calcula: 1 + ⌈5000 / 170⌉ |
 | Récord | Se guarda en `record.json` y se carga al abrir el juego | "El récord guarda el mayor puntaje alcanzado"; sin archivo, `Rec = 0` como en el estado inicial |
 
 ---
