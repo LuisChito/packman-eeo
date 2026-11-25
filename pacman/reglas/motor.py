@@ -57,15 +57,31 @@ class Disparo:
     regla: Regla
 
 
+@dataclass(frozen=True)
+class Muerte:
+    """Foto del instante en que Pac-Man pierde una vida (justo ANTES de que la
+    regla 14 lo regrese al spawn). Solo la usa la interfaz para animar; no
+    forma parte del estado del análisis."""
+    pacman: tuple[int, int]
+    fantasmas: dict[str, tuple[tuple[int, int], int]]   # nombre -> (pos, E)
+
+
+REGLAS_PERDER_VIDA = frozenset(r.perder_vida for r in op.POR_FANTASMA.values())
+
+
 class MotorReglas:
     def __init__(self, estado: Estado, max_traza: int = 200) -> None:
         self.estado = estado
         self.ronda = 0
         self.traza: deque[Disparo] = deque(maxlen=max_traza)
         self.ultimos: list[Regla] = []   # reglas disparadas en la última ronda
+        self.muerte: Muerte | None = None  # se llena si en la ronda se perdió una vida
 
     # ----------------------------------------------------------- utilidades
     def _disparar(self, regla: Regla, fase: str) -> bool:
+        if regla in REGLAS_PERDER_VIDA and regla.es_aplicable(self.estado):
+            e = self.estado
+            self.muerte = Muerte(e.pacman.pos, {f.nombre: (f.pos, f.E) for f in e.fantasmas})
         if regla.aplicar(self.estado):
             self.traza.append(Disparo(self.ronda, fase, regla))
             self.ultimos.append(regla)
@@ -100,6 +116,7 @@ class MotorReglas:
             return []
         self.ronda += 1
         self.ultimos = []
+        self.muerte = None
 
         # 1) Pac-Man se mueve: primero la dirección que pidió el jugador;
         #    si choca, sigue en su dirección actual (Dir); si no, se queda.

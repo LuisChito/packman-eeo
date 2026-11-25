@@ -303,6 +303,7 @@ Puntos donde el documento deja libertad y cómo se resolvieron:
 | Dos fantasmas en la misma celda | Se permite (no chocan entre sí); se dibujan un poco desplazados | El análisis no define colisión entre fantasmas |
 | Duración de una ronda | 170 ms (`config.py → MS_POR_RONDA`) | Las reglas cuentan rondas, no milisegundos |
 | Duración del poder | 5 s → `T = 31` (`config.py → DURACION_PODER_MS`) | El PDF decía `T = 8` (≈ 1.4 s); era muy poco para alcanzar a un fantasma. `T` se calcula: 1 + ⌈5000 / 170⌉ |
+| Animación al perder una vida | La regla 14 se aplica igual (en la misma ronda); el motor guarda una foto de dónde murió Pac-Man (`motor.muerte`) y la interfaz congela las rondas ≈ 2 s: Pac-Man se desvanece donde lo atraparon (1.2 s) y luego todos aparecen en su spawn con "¡LISTO!" (0.8 s). Tiempos en `interfaz/tema.py` | Es solo presentación: el estado y las reglas no cambian, así la Tabla 3 sigue siendo la misma |
 | Récord | Se guarda en `record.json` y se carga al abrir el juego | "El récord guarda el mayor puntaje alcanzado"; sin archivo, `Rec = 0` como en el estado inicial |
 
 ---
@@ -328,7 +329,7 @@ Puntos donde el documento deja libertad y cómo se resolvieron:
 
 ```bash
 python -m unittest -v
-# Ran 33 tests ... OK
+# Ran 35 tests ... OK
 ```
 
 ---

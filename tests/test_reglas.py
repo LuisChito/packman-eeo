@@ -5,7 +5,8 @@ Ejecutar:  python -m unittest -v
 import unittest
 
 from pacman.config import (
-    ASUSTADO, COMIDO, GANADO, INICIO, JUGANDO, NORMAL, PAUSA, PERDIDO, ROSA, VERDE,
+    ASUSTADO, COMIDO, GANADO, INICIO, JUGANDO, NORMAL, PAUSA, PERDIDO, ROSA, SPAWN_PAC,
+    VERDE,
 )
 from pacman.dominio import Estado
 from pacman.ia import estrategias
@@ -218,6 +219,21 @@ class Motor(unittest.TestCase):
             rondas += 1
         self.assertGreaterEqual(rondas * MS_POR_RONDA, 5000)
         self.assertLess(rondas * MS_POR_RONDA, 5000 + MS_POR_RONDA)
+
+    def test_foto_de_la_muerte(self):
+        e = Estado.inicial()
+        m = MotorReglas(e)
+        m.aplicar_evidente("iniciar_juego")
+        e.pacman.Pf, e.pacman.Pc, e.pacman.Dir = 1, 3, "↑"    # quieto contra la pared
+        v = e.fantasma_por("verde")
+        v.Ff, v.Fc = 1, 3                                       # lo atrapa ahí mismo
+        m.ejecutar_ronda("↑")
+        self.assertIsNotNone(m.muerte)
+        self.assertEqual(m.muerte.pacman, (1, 3))               # dónde murió (antes de la regla 14)
+        self.assertEqual(e.pacman.pos, SPAWN_PAC)               # el estado ya reapareció
+        self.assertEqual(e.pacman.V, 2)
+        m.ejecutar_ronda("↑")
+        self.assertIsNone(m.muerte)                             # solo dura una ronda
 
     def test_evidente_rechaza_ocultos(self):
         m = MotorReglas(Estado.inicial())

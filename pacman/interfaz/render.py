@@ -11,7 +11,7 @@ from ..config import (
 )
 from ..dominio.entidades import Estado
 from ..reglas.base import EVIDENTE
-from ..reglas.motor import MotorReglas
+from ..reglas.motor import MotorReglas, Muerte
 from . import tema as t
 
 ANCHO_TABLERO = COLUMNAS * t.CELDA
@@ -40,11 +40,14 @@ class Renderizador:
 
     # ================================================================ API
     def dibujar(self, estado: Estado, motor: MotorReglas, progreso: float,
-                prev_pac: tuple[int, int], prev_fan: dict[str, tuple[int, int]], ms: int) -> None:
+                prev_pac: tuple[int, int], prev_fan: dict[str, tuple[int, int]], ms: int,
+                muerte: tuple[Muerte, int] | None = None) -> None:
         self.pantalla.fill(t.FONDO)
         self._dibujar_laberinto(estado)
         self._dibujar_objetos(estado, ms)
-        if estado.EJ != INICIO:
+        if muerte is not None:
+            self._dibujar_animacion_muerte(estado, *muerte, ms)
+        elif estado.EJ != INICIO:
             ocupadas: set[tuple[int, int]] = set()
             for f in estado.fantasmas:
                 origen = prev_fan.get(f.nombre, f.pos)
@@ -56,7 +59,8 @@ class Renderizador:
             self._dibujar_pacman(estado, self._interpolar(prev_pac, estado.pacman.pos, progreso), ms)
         self._dibujar_panel(estado, motor)
         self._dibujar_barra(estado)
-        self._dibujar_superposicion(estado)
+        if muerte is None:
+            self._dibujar_superposicion(estado)
 
     def marcar_cambios(self, estado: Estado) -> None:
         """Compara con la ronda anterior para resaltar variables que cambiaron."""
@@ -119,18 +123,87 @@ class Renderizador:
                     pygame.draw.circle(self.pantalla, t.SUPER, self._centro((f, c)), radio)
 
     def _dibujar_pacman(self, estado: Estado, pos, ms: int) -> None:
-        cx, cy = self._centro(pos)
-        radio = t.CELDA * 0.43
         apertura = 8 + 34 * abs(math.sin(ms / 90)) if estado.EJ == "jugando" else 30
-        base = ANGULO_DIR[estado.pacman.Dir]
+        if estado.pacman.P == 1:  # halo de poder
+            cx, cy = self._centro(pos)
+            pygame.draw.circle(self.pantalla, t.SUPER, (cx, cy), t.CELDA * 0.43 + 3, 2)
+        self._pacman_forma(pos, ANGULO_DIR[estado.pacman.Dir], apertura)
+
+    def _pacman_forma(self, pos, base: float, apertura: float, escala: float = 1.0) -> None:
+        """Pac-Man con la boca abierta `apertura` grados hacia `base`."""
+        if apertura >= 179 or escala <= 0:
+            return
+        cx, cy = self._centro(pos)
+        radio = t.CELDA * 0.43 * escala
         puntos = [(cx, cy)]
         for i in range(31):
             a = math.radians(base + apertura + (360 - 2 * apertura) * i / 30)
             puntos.append((cx + radio * math.cos(a), cy - radio * math.sin(a)))
-        color = t.PACMAN
-        if estado.pacman.P == 1:  # halo de poder
-            pygame.draw.circle(self.pantalla, t.SUPER, (cx, cy), radio + 3, 2)
-        pygame.draw.polygon(self.pantalla, color, puntos)
+        pygame.draw.polygon(self.pantalla, t.PACMAN, puntos)
+
+    # ===================================================== animación muerte
+    def _dibujar_animacion_muerte(self, estado: Estado, muerte: Muerte, ms_anim: int, ms: int) -> None:
+        """0 – MUERTE_MS: los fantasmas se quedan quietos y luego se esfuman;
+        Pac-Man abre la boca hasta desaparecer y suelta un destello.
+        MUERTE_MS – PAUSA_MUERTE_MS: todos aparecen en su spawn."""
+        if ms_anim < t.MUERTE_MS:
+            congelado, esfumar = 250, 450     # ms quietos, ms en desvanecerse
+            if ms_anim < congelado + esfumar:
+                alfa = 255 if ms_anim < congelado else 255 * (1 - (ms_anim - congelado) / esfumar)
+                for f in estado.fantasmas:
+                    pos, E = muerte.fantasmas[f.nombre]
+                    self._con_alfa(alfa, lambda f=f, pos=pos, E=E: self._dibujar_fantasma(
+                        estado, _FantasmaFoto(f, pos, E), pos, ms))
+            p = min(max((ms_anim - congelado) / (t.MUERTE_MS - congelado - 250), 0.0), 1.0)
+            if p < 1:
+                # la boca se abre hacia arriba hasta "comerse" a sí mismo
+                self._pacman_forma(muerte.pacman, 90, 30 + 150 * p, 1 - 0.25 * p)
+            else:
+                self._destello(muerte.pacman, (ms_anim - (t.MUERTE_MS - 250)) / 250)
+            return
+
+        # Reaparición en el spawn
+        p = min((ms_anim - t.MUERTE_MS) / t.REAPARICION_MS, 1.0)
+        for f in estado.fantasmas:
+            self._con_alfa(255 * p, lambda f=f: self._dibujar_fantasma(estado, f, f.pos, ms))
+        crecer = 1 - (1 - min(p * 1.6, 1.0)) ** 3        # ease-out
+        cx, cy = self._centro(estado.pacman.pos)
+        anillo = t.CELDA * (0.4 + 1.2 * p)
+        color = tuple(int(c * (1 - p)) for c in t.PACMAN)
+        pygame.draw.circle(self.pantalla, color, (cx, cy), anillo, 2)
+        self._pacman_forma(estado.pacman.pos, ANGULO_DIR[estado.pacman.Dir], 30, crecer)
+        if (ms // 200) % 2 == 0:
+            self._texto("¡LISTO!", (ANCHO_TABLERO // 2, cy - t.CELDA * 1.6), self.f_media,
+                        t.PACMAN, centrado=True)
+
+    def _destello(self, celda, p: float) -> None:
+        """Rayitos que salen del lugar donde murió Pac-Man."""
+        p = min(max(p, 0.0), 1.0)
+        cx, cy = self._centro(celda)
+        color = tuple(int(c * (1 - p) + f * p) for c, f in zip(t.PACMAN, t.FONDO))
+        for i in range(8):
+            a = math.radians(i * 45)
+            r1, r2 = 4 + 10 * p, 9 + 14 * p
+            pygame.draw.line(self.pantalla, color,
+                             (cx + r1 * math.cos(a), cy + r1 * math.sin(a)),
+                             (cx + r2 * math.cos(a), cy + r2 * math.sin(a)), 2)
+
+    def _con_alfa(self, alfa: float, dibujo) -> None:
+        """Ejecuta `dibujo` sobre una capa transparente y la mezcla con `alfa`."""
+        if alfa >= 255:
+            dibujo()
+            return
+        if alfa <= 0:
+            return
+        real = self.pantalla
+        capa = pygame.Surface(real.get_size(), pygame.SRCALPHA)
+        self.pantalla = capa
+        try:
+            dibujo()
+        finally:
+            self.pantalla = real
+        capa.set_alpha(int(alfa))
+        real.blit(capa, (0, 0))
 
     def _dibujar_fantasma(self, estado: Estado, fantasma, pos, ms: int) -> None:
         cx, cy = self._centro(pos)
@@ -257,3 +330,15 @@ class Renderizador:
         if centrado:
             pos = (pos[0] - sup.get_width() // 2, pos[1] - sup.get_height() // 2)
         self.pantalla.blit(sup, pos)
+
+
+class _FantasmaFoto:
+    """Un fantasma con la posición y el estado E de la foto de la muerte."""
+    def __init__(self, fantasma, pos, E) -> None:
+        self.nombre, self.ia = fantasma.nombre, fantasma.ia
+        self.Ff, self.Fc = pos
+        self.E = E
+
+    @property
+    def pos(self):
+        return (self.Ff, self.Fc)

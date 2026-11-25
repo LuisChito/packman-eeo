@@ -6,6 +6,11 @@ ALTO_BARRA = 34
 from ..config import MS_POR_RONDA  # noqa: E402,F401  (duración de una ronda; vive en config)
 FPS = 60
 
+# Animación al perder una vida (las rondas se congelan mientras dura)
+MUERTE_MS = 1200              # Pac-Man se desvanece donde lo atraparon
+REAPARICION_MS = 800          # Pac-Man y fantasmas aparecen en su spawn
+PAUSA_MUERTE_MS = MUERTE_MS + REAPARICION_MS   # ≈ 2 s en total
+
 # Paleta
 FONDO = (10, 12, 24)
 PARED = (14, 22, 70)
